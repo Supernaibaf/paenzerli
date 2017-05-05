@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Pänzerli</title>
+    <script src="script/regression.min.js"></script>
+    <script src="script/paenzerli.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="script/communication.js"></script>
+    <link rel="stylesheet" href="style/style.css"/>
+</head>
+<body>
+<section>
+    <section id="start-window">
+        <section>
+            <h1>Pänzerli</h1>
+            <button id="start-button">Start</button>
+            <span id="start-waiting">Waiting for players</span>
+            <span id="start-countdown">Starts in <span id="start-time">5</span> Seconds</span>
+        </section>
+    </section>
+    <section id="game-window">
+        <section id="weapon-choose"></section>
+        <canvas id="playground"></canvas>
+        <nav>
+            <button name="fire">Schüssä</button>
+            <div id="strength">
+                <span></span>
+            </div>
+            <button name="weapon">Waffä</button>
+        </nav>
+    </section>
+</section>
+</body>
+</html>
