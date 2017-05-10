@@ -10,63 +10,33 @@ const BACKGROUND_COLOR = "#67c8ff";
 const ACCELERATION = 2;
 const STRENGTH_RADIUS = 400;
 const MAX_STRENGTH = 70;
-const LANDSCAPES = [
-    {
-        "name": "desert",
-        "randomSize": 50,
-        "topDistance": 950,
-        "degreesOfFreedom": 2,
-        "randomPointDistance": 400,
-        "color": "#ffdf4d"
-    }, {
-        "name": "green",
-        "randomSize": 400,
-        "topDistance": 500,
-        "degreesOfFreedom": 10,
-        "randomPointDistance": 100,
-        "color": "#0b9600"
-    }, {
-        "name": "ice",
-        "randomSize": 600,
-        "topDistance": 300,
-        "degreesOfFreedom": 20,
-        "randomPointDistance": 20,
-        "color": "#ffffff"
-    }
-];
 
-let game = null;
 
 let startWindow;
 let startButton;
 let startTime;
 let startText;
 let startWait;
+let endButton;
+let endRank;
 let playground;
 let strengthbox;
 let strengthSlider;
 let playgroundContext;
 let weaponChoose;
 
+let game;
 let myTank;
 let allTanks = [];
+let rank;
 
 let weaponChooseVisible = false;
 let playgroundDown = false;
 let strengthSliderDown = false;
 
 let windowScale = 1;
-let landscapeLambdas = [];
-let currentLandscape = 0;
 
-let sideSpeed = 5;
-let cannonball;
-let cannonballInterval = null;
-let cannonballX = 0;
-let cannonballY = 0;
-let acceleration = 2;
 let wind = 30;
-let speed = 0;
 
 const initialize = function initialize() {
     startWindow = document.body.querySelector("#start-window");
@@ -74,12 +44,12 @@ const initialize = function initialize() {
     startTime = document.body.querySelector("#start-time");
     startText = document.body.querySelector("#start-countdown");
     startWait = document.body.querySelector("#start-waiting");
+    endButton = document.body.querySelector("#end-button");
+    endRank = document.body.querySelector("#end-rank");
 
     startButton.addEventListener("click", initiateStart);
-    window.addEventListener("keydown", keyDown);
+    endButton.addEventListener("click", initiateWelcome);
     window.addEventListener("resize", playgroundResize);
-    document.body.querySelector("button[name=fire]").addEventListener("click", fireClick);
-    document.body.querySelector("button[name=weapon]").addEventListener("click", weaponClick);
     playground = document.body.querySelector("#playground");
     strengthbox = document.body.querySelector("#strength");
     strengthSlider = document.body.querySelector("#strength > span");
@@ -91,18 +61,26 @@ const initialize = function initialize() {
         playgroundContext = playground.getContext("2d");
     }
     playgroundResize();
+    initiateWelcome();
+};
+
+const initiateWelcome = function initiateWelcome() {
+    playgroundContext.clearRect(0, 0, WIDTH, HEIGHT);
+    startButton.style.display = "inline-block";
+    endRank.style.display = "none";
+    endButton.style.display = "none";
 };
 
 const initiateStart = function initiateStart() {
     startButton.style.display = "none";
-    startWait.style.display = "inline-block";
+    startWait.style.display = "block";
     initiateGame();
 };
 
 const startRound = function startRound() {
     let counter = 5;
     startWait.style.display = "none";
-    startText.style.display = "inline-block";
+    startText.style.display = "block";
     startTime.innerHTML = counter;
     let countdownInterval = setInterval(function() {
         counter--;
@@ -113,6 +91,78 @@ const startRound = function startRound() {
     }, 1000);
 };
 
+const startGame = function startGame(gameObject) {
+    playgroundContext.clearRect(0, 0, WIDTH, HEIGHT);
+    allTanks = [];
+    game = gameObject;
+    drawLandscape(game.landscape);
+    rank = game.alltanks.length;
+    for (let i = 0; i < game.alltanks.length; i++) {
+        let newTank = addTank(game.landscape.lambdas, playgroundContext, game.alltanks[i]);
+        if (i == game.mytank) {
+            myTank = newTank;
+            myTank.setMainTank(document.body.querySelector("#strength > span"));
+        } else {
+
+        }
+        newTank.draw();
+    }
+    document.addEventListener("mousedown", mousedown);
+    document.addEventListener("touchstart", touchstart);
+    document.addEventListener("mouseup", mouseup);
+    document.addEventListener("touchend", touchend);
+    document.addEventListener("mousemove", mousemove);
+    document.addEventListener("touchmove", touchmove);
+    window.addEventListener("keydown", keyDown);
+    document.body.querySelector("button[name=fire]").addEventListener("click", fireClick);
+    document.body.querySelector("button[name=weapon]").addEventListener("click", weaponClick);
+    document.body.querySelector("button[name=fire]").removeAttribute("disabled");
+    document.body.querySelector("button[name=weapon]").removeAttribute("disabled");
+
+    startWindow.style.height = 0;
+};
+
+const finishMyGame = function finishMyGame() {
+    eventEmit("end");
+    document.removeEventListener("mousedown", mousedown);
+    document.removeEventListener("touchstart", touchstart);
+    document.removeEventListener("mouseup", mouseup);
+    document.removeEventListener("touchend", touchend);
+    document.removeEventListener("mousemove", mousemove);
+    document.removeEventListener("touchmove", touchmove);
+    window.removeEventListener("keydown", keyDown);
+    document.body.querySelector("button[name=fire]").removeEventListener("click", fireClick);
+    document.body.querySelector("button[name=weapon]").removeEventListener("click", weaponClick);
+    document.body.querySelector("button[name=fire]").setAttribute("disabled", "disabled");
+    document.body.querySelector("button[name=weapon]").setAttribute("disabled", "disabled");
+};
+
+const endGame = function endGame() {
+    let rankText;
+    switch (myTank.getRank()) {
+        case null:
+            rankText = "Winner";
+            finishMyGame();
+            break;
+        case 2:
+            rankText = "Loser";
+            break;
+        case 3:
+            rankText = "Loser";
+            break;
+        default:
+            rankText = "Loser";
+            break;
+    }
+    startWait.style.display = "none";
+    startText.style.display = "none";
+    startButton.style.display = "none";
+    endRank.style.display = "block";
+    endButton.style.display = "inline-block";
+    endRank.innerHTML = rankText;
+    startWindow.style.height = "100%";
+};
+
 class Tank {
     constructor(id, lambdas, context, posX, angle, color) {
         this.id = id;
@@ -121,6 +171,7 @@ class Tank {
         this.angle = (angle === undefined) ? Math.random() * Math.PI : angle;
         this.color = (color === undefined) ? '#' + (0x1000000 + (Math.random()) * 0xffffff).toString(16).substr(1, 6) : color;
         this.life = 100;
+        this.rank = null;
         this.lambdas = lambdas;
         this.cannonballInterval = null;
         this.cannonballX = this.x;
@@ -144,7 +195,7 @@ class Tank {
             this.life -= life;
             this.draw();
         }
-        if (this.life <= 0) {
+        if (this.life <= 0 && !this.isDead) {
             this.setDead();
             this.animateDead();
         }
@@ -152,13 +203,23 @@ class Tank {
 
     setDead() {
         this.isDead = true;
+        if (this.isMainTank && this.rank === null) {
+            finishMyGame();
+        }
+        this.rank = rank;
+        if (rank == 2) {
+            endGame();
+        }
+        rank--;
+    }
+
+    getRank() {
+        return this.rank;
     }
 
     animateDead() {
-        console.log("Hallo");
         let animationRadius = 0;
         let animationInterval = setInterval((function() {
-            console.log("Hallo");
             animationRadius += 2;
             this.context.beginPath();
             this.context.arc(this.x, this.y, animationRadius, 0, 2 * Math.PI);
@@ -241,12 +302,6 @@ class Tank {
                 calculateLandscapePoint(this.cannonballX, this.lambdas);
             window.clearInterval(this.cannonballInterval);
             this.cannonballInterval = null;
-            /*for (let i = 0; i < allTanks.length; i++) {
-                if (allTanks[i].checkForHit(this.cannonballX)) {
-                    allTanks[i].setDead();
-                    allTanks[i].draw();
-                }
-            }*/
         } else {
             this.drawCannonball();
         }
@@ -281,8 +336,19 @@ class Tank {
         return (posX <= this.x + 24 && posX >= this.x - 24);
     }
 
-    setStrength(strength) {
-        this.strength = strength;
+    setStrength(strength, operator) {
+        if (operator === undefined) {
+            this.strength = strength;
+        } else if (operator === "add") {
+            this.strength += strength;
+        } else if (operator === "sub") {
+            this.strength -= strength;
+        }
+        if (this.strength > MAX_STRENGTH) {
+            this.strength = MAX_STRENGTH;
+        } else if (this.strength < 0) {
+            this.strength = 0;
+        }
         this.strengthX = this.strength * Math.cos(this.angle);
         this.strengthY = this.strength * Math.sin(this.angle);
         if (this.isMainTank) {
@@ -290,8 +356,20 @@ class Tank {
         }
     }
 
-    setAngle(angle) {
-        this.angle = angle;
+    setAngle(angle, operator) {
+        if (operator === undefined) {
+            this.angle = angle;
+        } else if (operator === "add") {
+            this.angle += angle;
+        } else if (operator === "sub") {
+            this.angle -= angle;
+        }
+        if (this.angle > Math.PI) {
+            this.angle = Math.PI;
+        } else if (this.angle < 0) {
+            this.angle = 0;
+        }
+        this.setStrength(this.strength);
         this.draw();
     }
 
@@ -329,18 +407,18 @@ class Tank {
 }
 
 const checkAllTanksForHit = function checkAllTanksForHit(cannonballX) {
+    let hit = false;
     for (let i = 0; i < allTanks.length; i++) {
         if (allTanks[i].checkForHit(cannonballX)) {
             allTanks[i].tankHit(10);
             allTanks[i].draw();
-            return true;
+            hit = true;
         }
     }
-    return false;
+    return hit;
 };
 
 const fireClick = function fireClick() {
-    myTank.fire();
     let gameObject = {
         id: game.gameid,
         tank: myTank.toObject()
@@ -372,30 +450,18 @@ const fire = function fire(tank) {
     allTanks[tank.id].fire();
 };
 
-const cannonballFly = function cannonballFly() {
-    speed -= acceleration;
-    sideSpeed -= wind;
-    clearCannonball(cannonballX, cannonballY);
-    cannonballY -= speed;
-    cannonballX += sideSpeed;
-    let floor = calculateLandscapePoint(cannonballX, landscapeLambdas);
-    if (cannonballY >= floor) {
-        cannonballY = floor;
-        window.clearInterval(cannonballInterval);
-        cannonballInterval = null;
-    }
-    drawCannonball(cannonballX, cannonballY);
-};
-
-const mousemove = function mousemove(e) {
+const inputmove = function inputmove(clientX, clientY, e) {
     if (playgroundDown) {
         let viewportOffset = playground.getBoundingClientRect();
-        let mouseX = ((e.clientX - viewportOffset.left) / playground.clientWidth) * WIDTH;
-        let mouseY = ((e.clientY - viewportOffset.top) / playground.clientHeight) * HEIGHT;
+        let mouseX = ((clientX - viewportOffset.left) / playground.clientWidth) * WIDTH;
+        let mouseY = ((clientY - viewportOffset.top) / playground.clientHeight) * HEIGHT;
         myTank.followMouse(mouseX, mouseY);
+        if (e !== undefined) {
+            e.preventDefault();
+        }
     } else if (strengthSliderDown) {
         let viewportOffset = strengthSlider.parentElement.getBoundingClientRect();
-        let mouseX = e.clientX - viewportOffset.left;
+        let mouseX = clientX - viewportOffset.left;
 
         let strength;
         if (mouseX <= 0) {
@@ -409,18 +475,31 @@ const mousemove = function mousemove(e) {
             strength = (mouseX / viewportOffset.width) * MAX_STRENGTH;
         }
         myTank.setStrength(strength);
+        if (e !== undefined) {
+            e.preventDefault();
+        }
     }
 };
 
-const mousedown = function mousedown(e) {
-    if (e.target == playground) {
+const touchmove = function touchmove(e) {
+    if (e.touches.length == 1) {
+        inputmove(e.touches[0].clientX, e.touches[0].clientY, e);
+    }
+};
+
+const mousemove = function mousemove(e) {
+    inputmove(e.clientX, e.clientY);
+};
+
+const inputdown = function inputdown(target, clientX) {
+    if (target == playground) {
         playgroundDown = true;
-    } else if (e.target == strengthSlider) {
+    } else if (target == strengthSlider) {
         strengthSliderDown = true;
-    } else if (e.target == strengthbox) {
+    } else if (target == strengthbox) {
         strengthSliderDown = true;
         let viewportOffset = strengthbox.getBoundingClientRect();
-        let mouseX = e.clientX - viewportOffset.left;
+        let mouseX = clientX - viewportOffset.left;
 
         let strength;
 
@@ -430,7 +509,15 @@ const mousedown = function mousedown(e) {
     }
 };
 
-const mouseup = function mouseup() {
+const touchstart = function touchstart(e) {
+    inputdown(e.touches[0].target, e.touches[0].clientX, e.touches[0].clientY);
+};
+
+const mousedown = function mousedown(e) {
+    inputdown(e.target, e.clientX, e.clientY);
+};
+
+const inputup = function inputup() {
     if (playgroundDown) {
         let gameObject = {
             id: game.gameid,
@@ -442,52 +529,23 @@ const mouseup = function mouseup() {
     strengthSliderDown = false;
 };
 
+const mouseup = function mouseup() {
+    inputup();
+};
+
+const touchend = function touchend() {
+    inputup();
+};
+
 const changeAngle = function changeAngle(tank) {
     allTanks[tank.id].setAngle(tank.angle);
     allTanks[tank.id].setStrength(tank.strength);
-};
-
-const startGame = function startGame(gameObject) {
-    game = gameObject;
-    drawLandscape(game.landscape);
-    for (let i = 0; i < game.alltanks.length; i++) {
-        let newTank = addTank(game.landscape.lambdas, playgroundContext, game.alltanks[i]);
-        if (i == game.mytank) {
-            myTank = newTank;
-            myTank.setMainTank(document.body.querySelector("#strength > span"));
-        } else {
-
-        }
-        newTank.draw();
-    }
-    document.addEventListener("mousedown", mousedown);
-    document.addEventListener("touchstart", mousedown);
-    document.addEventListener("mouseup", mouseup);
-    document.addEventListener("touchend", mouseup);
-    document.addEventListener("mousemove", mousemove);
-    document.addEventListener("touchmove", mousemove);
-    //startWindow.style.display = "none";
-    startWindow.style.height = 0;
 };
 
 const addTank = function addTank(lambdas, context, tankObject) {
     let newTank = new Tank(tankObject.id, lambdas, context, tankObject.x, tankObject.angle, tankObject.color);
     allTanks.push(newTank);
     return newTank;
-};
-
-const drawCannonball = function drawCannonball(centerX, centerY) {
-    playgroundContext.beginPath();
-    playgroundContext.arc(centerX, centerY, CANNONBALL_RADIUS, 0, 2 * Math.PI);
-    playgroundContext.fillStyle = "#ffff00";
-    playgroundContext.fill();
-};
-
-const clearCannonball = function clearCannonball(centerX, centerY) {
-    playgroundContext.beginPath();
-    playgroundContext.arc(centerX, centerY, CANNONBALL_RADIUS + 1, 0, 2 * Math.PI);
-    playgroundContext.fillStyle = BACKGROUND_COLOR;
-    playgroundContext.fill();
 };
 
 const drawLandscape = function drawLandscape(landscape) {
@@ -511,15 +569,23 @@ const calculateLandscapePoint = function calculateLandscapePoint(x, lambdas) {
 };
 
 const keyDown = function keyDown(e) {
-
-};
-
-const hideElement = function hideElement(element) {
-    element.style.display = "none";
-};
-
-const showElement = function showElement(element) {
-    element.style.display = "block";
+    switch (e.keyCode) {
+        case 32:
+            fireClick();
+            break;
+        case 37:
+            myTank.setAngle(.1, "add");
+            break;
+        case 38:
+            myTank.setStrength(2, "add");
+            break;
+        case 39:
+            myTank.setAngle(.1, "sub");
+            break;
+        case 40:
+            myTank.setStrength(2, "sub");
+            break;
+    }
 };
 
 const playgroundResize = function playgroundResize() {

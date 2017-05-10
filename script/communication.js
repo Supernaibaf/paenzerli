@@ -4,8 +4,12 @@
 const socket = io();
 
 const eventEmit = function eventEmit(type, gameObject) {
-    let game = JSON.stringify(gameObject);
-    socket.emit(type, game);
+    if (game === undefined) {
+        socket.emit(type);
+    } else {
+        let game = JSON.stringify(gameObject);
+        socket.emit(type, game);
+    }
 };
 
 const initiateGame = function initiateGame() {
@@ -21,14 +25,16 @@ socket.on("startgame", function(msg) {
     }
 });
 
-socket.on("startround", function(msg) {
+socket.on("startround", function() {
     startRound();
 });
 
 socket.on("fire-broadcast", function(msg) {
     try {
-        let tank = JSON.parse(msg);
-        fire(tank);
+        let game = JSON.parse(msg);
+        for (let i = 0; i < game.allTanks.length; i++) {
+            fire(game.allTanks[i]);
+        }
     } catch (ex) {
         console.error("Could not parse JSON object" + msg, ex);
     }

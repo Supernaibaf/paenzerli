@@ -149,11 +149,15 @@ body > section {
     background-color: #3c5b85;
 }
 
+#end-button, #end-rank, #start-countdown, #start-waiting {
+    display: none;
+}
+
 #strength {
     position: relative;
     display: inline-block;
     width: 20%;
-    height: 40%;
+    height: 60%;
     background: linear-gradient(90deg, #00ff00, #ff0000);
     cursor: pointer;
 }
