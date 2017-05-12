@@ -23,6 +23,8 @@ const MAX_PLAYERS = 4;
 const WIDTH = 1600;
 const TIME_DELAY = 1000;
 const DEFAULT_STRENGTH = 30;
+const CANNONBALL_RADIUS = 4;
+const ACCELERATION = 2;
 const LANDSCAPES = [
     {
         "name": "desert",
@@ -54,38 +56,89 @@ pool.on("error", function (err, client) {
     console.error("idle client error", err.message, err.stack);
 });
 
-const broadcastShots = function broadcastShots(gameid) {
-    db.query("SELECT * FROM tankuser WHERE gameid=$1::int ORDER BY userid", [gameid], function (err, result) {
+let games = {};
+
+const broadcastShots = function broadcastShots(gameid, force) {
+    db.query("SELECT * FROM tankuser t INNER JOIN game g ON t.gameid=g.gameid" +
+        " WHERE t.gameid=$1::int ORDER BY userid", [gameid], function (err, result) {
         if (err) {
             return console.error("error running query", err);
         }
-        let game = {
-            allTanks: []
-        };
+        let allShot = true;
         for (let i = 0; i < result.rows.length; i++) {
-            let tankObject = {
-                id: i,
-                x: Number(result.rows[i].tankposition),
-                angle: Number(result.rows[i].tankangle),
-                color: result.rows[i].tankcolor,
-                strength: result.rows[i].tankstrength
-            };
-            game.allTanks.push(tankObject);
-        }
-        for (let i = 0; i < result.rows.length; i++) {
-            io.sockets.connected[result.rows[i].userid].emit('fire-broadcast', JSON.stringify(game));
-        }
-        db.query("UPDATE tankuser SET tankfired=false WHERE gameid=$1::int", [gameid], function(err) {
-            if (err) {
-                return console.error("error running query", err);
+            if (!result.rows[i].tankfired) {
+                allShot = false;
+                break;
             }
-        });
-        db.query("UPDATE game SET shotsfired=0 WHERE gameid=$1::int", [gameid], function (err) {
-            if (err) {
-                return console.error("error running query", err);
+        }
+        if (allShot || force === true) {
+            clearTimeout(games[gameid].gameTimeout);
+            if (result.rows.length > 0) {
+                let game = {
+                    id: result.rows[0].gameid,
+                    wind: result.rows[0].wind,
+                    landscape: JSON.parse(result.rows[0].landscape),
+                    allTanks: []
+                };
+                for (let i = 0; i < result.rows.length; i++) {
+                    let posX = Number(result.rows[i].tankposition);
+                    let tankObject = {
+                        id: i,
+                        x: posX,
+                        y: calculateLandscapePoint(posX, game.landscape.lambdas) - 16,
+                        angle: Number(result.rows[i].tankangle),
+                        color: result.rows[i].tankcolor,
+                        strength: result.rows[i].tankstrength,
+                        life: result.rows[i].tanklife,
+                        dead: result.rows[i].tankdead,
+                        hit: false
+                    };
+                    game.allTanks.push(tankObject);
+                }
+                for (let i = 0; i < result.rows.length; i++) {
+                    io.sockets.connected[result.rows[i].userid].emit('fire-broadcast', JSON.stringify(game));
+                }
+                db.query("UPDATE tankuser SET tankfired=false WHERE gameid=$1::int", [gameid], function (err) {
+                    if (err) {
+                        return console.error("error running query", err);
+                    }
+                });
+                games[gameid].gameTimeout = setTimeout(function () {
+                    broadcastShots(gameid, true);
+                }, 20000);
             }
-        });
+        }
     });
+};
+
+const calculateLandscapePoint = function calculateLandscapePoint(x, lambdas) {
+    let sum = 0;
+    for (let i = 0; i < lambdas.length; i++) {
+        sum += lambdas[i] * Math.pow(x, i);
+    }
+    return sum;
+};
+
+const calculateShots = function calculateShots(game) {
+    for (let i = 0; i < game.allTanks.length; i++) {
+        let tank = game.allTanks[i];
+        if (!tank.dead) {
+            let vX = tank.strength * Math.cos(tank.angle);
+            let vY = tank.strength * Math.sin(tank.angle);
+            let cannonballX = tank.x + (25 + CANNONBALL_RADIUS) * Math.cos(tank.angle);
+            let cannonballY = tank.y - (25 + CANNONBALL_RADIUS) * Math.sin(tank.angle);
+
+            for (let j = 0; j < game.allTanks.length; j++) {
+                let time1 = (game.allTanks[j].x + 24 - cannonballX) / vX;
+                let y1 = vY * time1 - (ACCELERATION / 2) * time1 * time1 + cannonballY;
+                let time2 = (game.allTanks[j].x - 24 - cannonballX) / vX;
+                let y2 = vY * time2 - (ACCELERATION / 2) * time2 * time2 + cannonballY;
+                if ((y1 >= tank.y - 24 && y2 <= tank.y - 24) || (y1 >= tank.y - 24 && y2 <= tank.y - 24)) {
+                    game.allTanks[j].hit = true;
+                }
+            }
+        }
+    }
 };
 
 const fire = function fire(userid, game) {
@@ -94,16 +147,18 @@ const fire = function fire(userid, game) {
             return console.error("error running query", err);
         }
         if (result.rows.length == 1) {
-            db.query("UPDATE game SET shotsfired=shotsfired+1 WHERE gameid=$1::int RETURNING players, shotsfired", [game.id], function (err, result) {
-                if (err) {
-                    return console.error("error running query", err);
-                }
-                if (result.rows[0].players === result.rows[0].shotsfired) {
-                    broadcastShots(game.id);
-                }
-            });
+            broadcastEvent("opponent", userid, game);
+            broadcastShots(game.id);
+            /*db.query("UPDATE game SET shotsfired=shotsfired+1 WHERE gameid=$1::int RETURNING players, shotsfired", [game.id], function (err, result) {
+             if (err) {
+             return console.error("error running query", err);
+             }
+             if (result.rows[0].players === result.rows[0].shotsfired) {
+             broadcastShots(game.id);
+             }
+             });*/
         } else {
-            console.log("Illegal action from " + userid);
+            //console.log("Illegal action from " + userid);
         }
     });
 };
@@ -117,6 +172,10 @@ const startGame = function startGame(gameid) {
 
         } else {
             let landscapeObject = JSON.parse(result.rows[0].landscape);
+            let landscape = [];
+            for (let i = 0; i <= WIDTH; i += 10) {
+                landscape.push(calculateLandscapePoint(i, landscapeObject.lambdas));
+            }
             db.query("SELECT userid, tankposition, tankangle, tankcolor, tankstrength FROM tankuser WHERE gameid=$1::int ORDER BY userid", [gameid], function (err, result) {
                 if (err) {
                     return console.error("error running query", err);
@@ -150,6 +209,13 @@ const startGame = function startGame(gameid) {
                     for (let i = 0; i < playerObjects.length; i++) {
                         try {
                             io.sockets.connected[playerObjects[i].id].emit('startgame', JSON.stringify(playerObjects[i]));
+                            let gameTameout = setTimeout(function () {
+                                broadcastShots(gameid, true);
+                            }, 20000);
+                            games[gameid] = {
+                                landscape: landscape,
+                                gameTimeout: gameTameout
+                            };
                         } catch (ex) {
                         }
 
@@ -215,13 +281,13 @@ const insertUser = function insertUser(socket, game) {
                 } catch (ex) {
                 }
             });
-            socket.on('angle', function (msg) {
-                try {
-                    let game = JSON.parse(msg);
-                    broadcastEvent('angle', socket.id, game);
-                } catch (ex) {
-                }
-            });
+            /*socket.on('angle', function (msg) {
+             try {
+             let game = JSON.parse(msg);
+             broadcastEvent('angle', socket.id, game.tank);
+             } catch (ex) {
+             }
+             });*/
             socket.on('end', function () {
                 endGame(socket.id);
             });
@@ -249,7 +315,7 @@ const updateUser = function updateUser(socket, game) {
         let userid = socket.id;
         let tankColor = '#' + (0x1000000 + (Math.random()) * 0xffffff).toString(16).substr(1, 6);
         let tankPosition = Math.random() * WIDTH;
-        db.query("UPDATE tankuser SET tankposition=$1::decimal, tankcolor=$2::text, gameid=$3::int, tankdead=false, tankfired=false, tankstrength=$4::decimal WHERE userid=$5::text", [tankPosition, tankColor, game.gameid, DEFAULT_STRENGTH, userid], function (err) {
+        db.query("UPDATE tankuser SET tankposition=$1::decimal, tankcolor=$2::text, gameid=$3::int, tankdead=false, tankfired=false, tankstrength=$4::decimal, tanklife=100 WHERE userid=$5::text", [tankPosition, tankColor, game.gameid, DEFAULT_STRENGTH, userid], function (err) {
             if (err) {
                 return console.error("error running query", err);
             }

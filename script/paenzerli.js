@@ -8,8 +8,12 @@ const HEIGHT = 1040;
 const CANNONBALL_RADIUS = 4;
 const BACKGROUND_COLOR = "#67c8ff";
 const ACCELERATION = 2;
-const STRENGTH_RADIUS = 400;
+//const STRENGTH_RADIUS = 400;
 const MAX_STRENGTH = 70;
+const COLOR_OPPONENT = "#000000";
+const COLOR_SHOT = "#ff9900";
+const MY_COLOR = "#00ff00";
+const MAX_TIME = 20000;
 
 
 let startWindow;
@@ -24,6 +28,7 @@ let strengthbox;
 let strengthSlider;
 let playgroundContext;
 let weaponChoose;
+let timeLine;
 
 let game;
 let myTank;
@@ -33,6 +38,8 @@ let rank;
 let weaponChooseVisible = false;
 let playgroundDown = false;
 let strengthSliderDown = false;
+let timerInterval = null;
+let timerValue = 100;
 
 let windowScale = 1;
 
@@ -46,6 +53,7 @@ const initialize = function initialize() {
     startWait = document.body.querySelector("#start-waiting");
     endButton = document.body.querySelector("#end-button");
     endRank = document.body.querySelector("#end-rank");
+    timeLine = document.body.querySelector("#time-line > span");
 
     startButton.addEventListener("click", initiateStart);
     endButton.addEventListener("click", initiateWelcome);
@@ -118,8 +126,8 @@ const startGame = function startGame(gameObject) {
     document.body.querySelector("button[name=weapon]").addEventListener("click", weaponClick);
     document.body.querySelector("button[name=fire]").removeAttribute("disabled");
     document.body.querySelector("button[name=weapon]").removeAttribute("disabled");
-
     startWindow.style.height = 0;
+    startTimer();
 };
 
 const finishMyGame = function finishMyGame() {
@@ -164,12 +172,14 @@ const endGame = function endGame() {
 };
 
 class Tank {
-    constructor(id, lambdas, context, posX, angle, color) {
+    constructor(id, lambdas, context, posX, angle) {
         this.id = id;
         this.x = (posX === undefined) ? Math.random() * (WIDTH - 30) + 15 : posX;
         this.y = calculateLandscapePoint(this.x, lambdas) - 16;
         this.angle = (angle === undefined) ? Math.random() * Math.PI : angle;
-        this.color = (color === undefined) ? '#' + (0x1000000 + (Math.random()) * 0xffffff).toString(16).substr(1, 6) : color;
+        this.color = COLOR_OPPONENT;
+        this.mainColor = COLOR_OPPONENT;
+        this.shotColor = COLOR_SHOT;
         this.life = 100;
         this.rank = null;
         this.lambdas = lambdas;
@@ -184,7 +194,20 @@ class Tank {
         this.setStrength(30);
     }
 
+    setShot() {
+        this.color = this.shotColor;
+        this.draw();
+    }
+
+    resetShot() {
+        this.color = this.mainColor;
+        this.draw();
+    }
+
     setMainTank(strengthBar) {
+        this.color = MY_COLOR;
+        this.shotColor = MY_COLOR;
+        this.mainColor = MY_COLOR;
         this.isMainTank = true;
         this.strengthBar = strengthBar;
         this.setStrength(this.strength);
@@ -376,8 +399,8 @@ class Tank {
     followMouse(mouseX, mouseY) {
         let distX = mouseX - this.x;
         let distY = mouseY - this.y;
-        let dist = Math.sqrt(distX * distX + distY * distY);
-        let strength = (dist >= STRENGTH_RADIUS) ? MAX_STRENGTH : (dist / STRENGTH_RADIUS) * MAX_STRENGTH;
+        //let dist = Math.sqrt(distX * distX + distY * distY);
+        //let strength = (dist >= STRENGTH_RADIUS) ? MAX_STRENGTH : (dist / STRENGTH_RADIUS) * MAX_STRENGTH;
         if (mouseY >= this.y) {
             if (mouseX >= this.x) {
                 this.angle = 0;
@@ -423,7 +446,12 @@ const fireClick = function fireClick() {
         id: game.gameid,
         tank: myTank.toObject()
     };
+    stopTimer();
     eventEmit("fire", gameObject);
+};
+
+const opponentShotFired = function (tank) {
+    allTanks[tank.id].setShot();
 };
 
 const weaponClick = function weaponClick() {
@@ -448,6 +476,29 @@ const fire = function fire(tank) {
     allTanks[tank.id].setAngle(tank.angle);
     allTanks[tank.id].setStrength(tank.strength);
     allTanks[tank.id].fire();
+    allTanks[tank.id].resetShot();
+    startTimer();
+};
+
+const startTimer = function () {
+    clearInterval(timerInterval);
+    timeLine.style.width = "100%";
+    timeLine.style.display = "block";
+    timerValue = 100;
+    timerInterval = setInterval(timerTrigger, 33);
+};
+
+const stopTimer = function() {
+    timeLine.style.display = "none";
+    clearInterval(timerInterval);
+};
+
+const timerTrigger = function() {
+    timerValue -= (100 / 20000) * 33;
+    timeLine.style.width = timerValue + "%";
+    if (timerValue <= 0) {
+        clearInterval(timerInterval);
+    }
 };
 
 const inputmove = function inputmove(clientX, clientY, e) {

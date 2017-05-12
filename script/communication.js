@@ -34,7 +34,19 @@ socket.on("fire-broadcast", function(msg) {
         let game = JSON.parse(msg);
         for (let i = 0; i < game.allTanks.length; i++) {
             fire(game.allTanks[i]);
+            if (game.allTanks[i].hit) {
+                console.log("Hit");
+            }
         }
+    } catch (ex) {
+        console.error("Could not parse JSON object" + msg, ex);
+    }
+});
+
+socket.on("opponent-broadcast", function(msg) {
+    try {
+        let tank = JSON.parse(msg);
+        opponentShotFired(tank);
     } catch (ex) {
         console.error("Could not parse JSON object" + msg, ex);
     }
