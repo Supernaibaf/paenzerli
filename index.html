@@ -3,10 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <title>Pänzerli</title>
-    <script src="script/regression.min.js"></script>
-    <script src="script/paenzerli.js"></script>
     <script src="/socket.io/socket.io.js"></script>
+    <script src="script/gui.js"></script>
+    <script src="script/tank.js"></script>
+    <script src="script/interaction.js"></script>
     <script src="script/communication.js"></script>
+    <script src="script/game.js"></script>
     <link rel="stylesheet" href="style/style.css"/>
     <link rel="apple-touch-icon" sizes="57x57" href="icons/apple-icon-57x57.png">
     <link rel="apple-touch-icon" sizes="60x60" href="icons/apple-icon-60x60.png">
@@ -17,7 +19,7 @@
     <link rel="apple-touch-icon" sizes="144x144" href="icons/apple-icon-144x144.png">
     <link rel="apple-touch-icon" sizes="152x152" href="icons/apple-icon-152x152.png">
     <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-icon-180x180.png">
-    <link rel="icon" type="image/png" sizes="192x192"  href="icons/android-icon-192x192.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="icons/android-icon-192x192.png">
     <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="96x96" href="icons/favicon-96x96.png">
     <link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16x16.png">
@@ -28,26 +30,72 @@
     <section id="start-window">
         <section>
             <h1>Pänzerli</h1>
-            <span id="start-waiting">Waiting for players</span>
+            <span id="start-waiting">Wartä uf anderi Spieler</span>
             <span id="end-rank"></span>
-            <span id="start-countdown">Starts in <span id="start-time">5</span> Seconds</span>
+            <span id="start-countdown">startet i <span id="start-time">5</span> Sekundä</span>
             <button id="start-button">Start</button>
-            <button id="end-button">Back</button>
+            <button id="end-button">Zrugg</button>
         </section>
     </section>
     <section id="game-window">
-        <section id="weapon-choose"></section>
         <section id="time-line">
             <span></span>
         </section>
+        <section id="weapon-choose">
+            <header>
+                <h2>Wafflä</h2>
+            </header>
+            <section>
+                <header>
+                    <span>Form</span>
+                    <span>Namä</span>
+                    <span>Stärchi</span>
+                    <span>Azahl</span>
+                </header>
+                <article id="waffle_belgian">
+                    <span class="img"></span>
+                    <span class="name">Belgischi Wafflä</span>
+                    <span class="strength">5</span>
+                    <span class="amount"></span>
+                </article>
+                <article id="waffle_heart">
+                    <span class="img"></span>
+                    <span class="name">Härzwafflä</span>
+                    <span class="strength">10</span>
+                    <span class="amount"></span>
+                </article>
+                <article id="waffle_neapolitan">
+                    <span class="img"></span>
+                    <span class="name">Neapolitanischi Wafflä</span>
+                    <span class="strength">20</span>
+                    <span class="amount"></span>
+                </article>
+                <article id="waffle_iron">
+                    <span class="img"></span>
+                    <span class="name">Waffelisä</span>
+                    <span class="strength">50</span>
+                    <span class="amount"></span>
+                </article>
+            </section>
+        </section>
         <canvas id="playground"></canvas>
         <nav>
-            <button name="fire">Schüssä</button>
+            <button name="fire">Abschlüssä</button>
             <div id="strength">
                 <span></span>
             </div>
-            <button name="weapon">Waffä</button>
+            <div id="weapon-group">
+                <div id="weapon-display" class="waffle_belgian">
+                    <span>5</span>
+                </div>
+                <button name="weapon">
+                    Wafflä
+                </button>
+            </div>
         </nav>
+    </section>
+    <section id="landscape-extension">
+
     </section>
 </section>
 </body>
