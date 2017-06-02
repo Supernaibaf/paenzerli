@@ -98,15 +98,19 @@ class Tank {
         let cannonballStartX = this.x + (25 + constant.CANNONBALL_RADIUS) * Math.cos(this.angle);
         let cannonballStartY = this.y - (25 + constant.CANNONBALL_RADIUS) * Math.sin(this.angle);
         let groundhit = null;
+        let groundhitY = null;
         let direction = (speedX >= 0) ? 1 : -1;
         let hits = [];
-        let start = Math.floor(cannonballStartX / 10);
+        let start = Math.floor(cannonballStartX / 10) + ((speedX >= 0) ? 1 : 0);
+
+        let inWallShot = false;
 
         for (let i = start; (speedX >= 0) ? i <= constant.WIDTH / 10 : i >= 0; i += direction) {
             let time = ((i * 10) - cannonballStartX) / (constant.PIXEL_PER_METER * speedX);
             let y = cannonballStartY - constant.PIXEL_PER_METER * (speedY * time - (constant.ACCELERATION / 2) * time * time);
             if (y >= landscapePoints[i]) {
                 groundhit = i * 10;
+                groundhitY = landscapePoints[i];
                 break;
             }
         }
@@ -118,37 +122,42 @@ class Tank {
             hits.push(this.index);
         }
 
-        for (let key in allTanks) {
-            if (allTanks.hasOwnProperty(key) && key !== this.index) {
-                if ((speedX >= 0 && allTanks[key].x + 24 >= cannonballStartX && allTanks[key].x - 24 <= groundhit)
-                    || (speedX < 0 && allTanks[key].x - 24 <= cannonballStartX && allTanks[key].x + 24 >= groundhit)) {
+        if (!inWallShot) {
+            for (let key in allTanks) {
+                if (allTanks.hasOwnProperty(key) && key !== this.index) {
+                    if ((speedX >= 0 && allTanks[key].x + 24 >= cannonballStartX && allTanks[key].x - 24 <= groundhit)
+                        || (speedX < 0 && allTanks[key].x - 24 <= cannonballStartX && allTanks[key].x + 24 >= groundhit)) {
 
 
-                    let time1 = (((allTanks[key].x - 24)) - cannonballStartX) / (constant.PIXEL_PER_METER * speedX);
-                    let y1 = cannonballStartY - constant.PIXEL_PER_METER * (speedY * time1 - (constant.ACCELERATION / 2) * time1 * time1);
-                    let time2 = (((allTanks[key].x + 24)) - cannonballStartX) / (constant.PIXEL_PER_METER * speedX);
-                    let y2 = cannonballStartY - constant.PIXEL_PER_METER * (speedY * time2 - (constant.ACCELERATION / 2) * time2 * time2);
+                        let time1 = (((allTanks[key].x - 24)) - cannonballStartX) / (constant.PIXEL_PER_METER * speedX);
+                        let y1 = cannonballStartY - constant.PIXEL_PER_METER * (speedY * time1 - (constant.ACCELERATION / 2) * time1 * time1);
+                        let time2 = (((allTanks[key].x + 24)) - cannonballStartX) / (constant.PIXEL_PER_METER * speedX);
+                        let y2 = cannonballStartY - constant.PIXEL_PER_METER * (speedY * time2 - (constant.ACCELERATION / 2) * time2 * time2);
 
-                    let m = (y2 - y1) / 48;
-                    let b = y1 - m * (allTanks[key].x - 24);
-                    let x = (allTanks[key].y - b) / m;
+                        let m = (y2 - y1) / 48;
+                        let b = y1 - m * (allTanks[key].x - 24);
+                        let x = (allTanks[key].y - b) / m;
 
-                    if ((time1 > 0 && y1 >= allTanks[key].y - 12 && y1 <= allTanks[key].y + 18)
-                        || (time2 > 0 && y2 >= allTanks[key].y - 12 && y2 <= allTanks[key].y + 18)
-                        || (time1 > 0 && time2 > 0 && x >= allTanks[key].x - 24 && x <= allTanks[key].x + 24)) {
-                        hits.push(allTanks[key].index);
-                        groundhit = allTanks[key].x;
+                        if ((time1 > 0 && y1 >= allTanks[key].y - 12 && y1 <= allTanks[key].y + 18)
+                            || (time2 > 0 && y2 >= allTanks[key].y - 12 && y2 <= allTanks[key].y + 18)
+                            || (time1 > 0 && time2 > 0 && x >= allTanks[key].x - 24 && x <= allTanks[key].x + 24)) {
+                            hits.push(allTanks[key].index);
+                            groundhit = allTanks[key].x;
+                            groundhitY = allTanks[key].y;
+                        }
                     }
                 }
             }
         }
+
         this.weaponAmounts[this.currentWeapon]--;
         if (this.weaponAmounts[this.currentWeapon] <= 0) {
             this.setWeapon(this.currentWeapon);
         }
         return {
             "hits": hits,
-            "stop": groundhit
+            "stopX": groundhit,
+            "stopY": groundhitY
         };
 
     }

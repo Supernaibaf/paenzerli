@@ -5,7 +5,8 @@
 const constant = require('./const');
 
 class Player {
-    constructor(socket, endConnection) {
+    constructor(socket, id, endConnection) {
+        this.id = id;
         this.socket = socket;
         this.connectionEnd = endConnection;
         this.game = null;
@@ -18,7 +19,7 @@ class Player {
 
     disconnect() {
         this.game.removePlayer(this);
-        this.connectionEnd(this.socket);
+        this.connectionEnd(this.id);
     }
 
     onFire(data) {
@@ -29,11 +30,13 @@ class Player {
             console.error("Could not parse data from user" + data, ex);
         }
         if (tank !== null) {
+            console.log(tank.playerId);
             if (this.validateFire(tank)) {
                 this.fired = true;
                 this.game.fire(tank);
             } else {
                 console.error("Validation error");
+                this.disconnect();
             }
         }
     }
@@ -60,6 +63,7 @@ class Player {
         let validateError = false;
         if (this.fired || this.rank !== null
             || typeof tank !== "object"
+            || tank.playerId === undefined || tank.playerId !== this.id
             || tank.index === undefined || tank.index !== this.tankIndex
             || tank.angle === undefined || tank.strength === undefined
             || tank.x === undefined || tank.x > constant.WIDTH || tank.x < 0

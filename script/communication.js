@@ -56,6 +56,7 @@ socket.on("fire-broadcast", function(msg) {
         console.error("Could not parse JSON object" + msg, ex);
     }
     if (allTanks !== null) {
+        console.log(allTanks);
         for (let key in allTanks) {
             if (allTanks.hasOwnProperty(key)) {
                 fireTank(allTanks[key]);

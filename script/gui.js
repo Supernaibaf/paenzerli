@@ -249,6 +249,7 @@ const initiateEnd = function initiateEnd(rank) {
 };
 
 const startTimer = function startTimer() {
+    timeLine.style.background = "#3c5b85";
     clearInterval(timerInterval);
     let startTime = Date.now();
     timerInterval = setInterval(function() {
@@ -308,6 +309,10 @@ const drawLandscape = function drawLandscape(landscape) {
 const redrawPlayground = function redrawPlayground() {
     playgroundContext.clearRect(0, 0, WIDTH, HEIGHT);
     drawLandscape(landscape);
+    drawTanks();
+};
+
+const drawTanks = function drawTanks() {
     for (let key in allTanks) {
         if (allTanks.hasOwnProperty(key)) {
             allTanks[key].draw();

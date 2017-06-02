@@ -7,7 +7,7 @@ exports.MIN_PLAYERS = 2;
 exports.MAX_TIME_DELAY = 1;
 exports.MAX_FIRE_TIME = 21000;
 exports.WIDTH = 1600;
-exports.HEIGHT = 1040;
+exports.HEIGHT = 810;
 exports.MAX_STRENGTH = 80;
 exports.DEFAULT_STRENGTH = 40;
 exports.ACCELERATION = 50;
@@ -43,23 +43,36 @@ exports.LANDSCAPES = [
     {
         "name": "desert",
         "randomSize": 50,
-        "topDistance": 950,
+        "topDistance": 720,
         "degreesOfFreedom": 2,
         "randomPointDistance": 400,
         "color": "#ffdf4d"
     }, {
         "name": "green",
-        "randomSize": 400,
-        "topDistance": 500,
+        "randomSize": 300,
+        "topDistance": 450,
         "degreesOfFreedom": 10,
         "randomPointDistance": 100,
         "color": "#0b9600"
     }, {
         "name": "ice",
-        "randomSize": 600,
+        "randomSize": 500,
         "topDistance": 300,
         "degreesOfFreedom": 20,
         "randomPointDistance": 20,
         "color": "#ffffff"
     }
 ];
+
+
+
+exports.parseStringToCookie = function parseStringToCookie(cookieString) {
+    cookieString = cookieString.replace(/ /g, '');
+    let cookieStrings = cookieString.split(';');
+    let cookies = {};
+    for (let i = 0; i < cookieStrings.length; i++) {
+        let cookie = cookieStrings[i].split('=');
+        cookies[cookie[0]] = cookie[1];
+    }
+    return cookies;
+};

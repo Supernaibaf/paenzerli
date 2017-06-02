@@ -6,6 +6,7 @@ const server = require('./server/server');
 const communication = require('./server/communication');
 const Game = require('./server/game');
 const Player = require('./server/player');
+const constant = require('./server/const');
 
 let gameIndex = 0;
 let games = [];
@@ -18,8 +19,8 @@ const newGame = function newGame() {
     return game;
 };
 
-const endConnection = function endConnection(socket) {
-    players[socket.id] = null;
+const endConnection = function endConnection(id) {
+    players[id] = null;
 };
 
 const freeGame = function freeGame() {
@@ -32,11 +33,16 @@ const freeGame = function freeGame() {
 };
 
 const initializePlayer = function initializePlayer(socket) {
-    let player = new Player(socket, endConnection);
-    let game = freeGame();
-    players[socket.id] = player;
-    game.addPlayer(player);
-    player.setGame(game);
+    let id = constant.parseStringToCookie(socket.handshake.headers.cookie)['paenzerliUID'];
+    if (!players.hasOwnProperty(id) || players[id] === null) {
+        let player = new Player(socket, id, endConnection);
+        let game = freeGame();
+        players[id] = player;
+        game.addPlayer(player);
+        player.setGame(game);
+    } else {
+        console.error("User started twice!", socket.id);
+    }
 };
 
 server.start();

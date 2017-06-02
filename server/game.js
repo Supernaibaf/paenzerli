@@ -14,7 +14,6 @@ class Game {
         this.open = true;
         this.end = false;
         this.landscape = ls.newLandscape();
-        this.rank = 0;
         this.timer = null;
         this.fireTimer = null;
     }
@@ -67,10 +66,10 @@ class Game {
                                 let life = this.tankList[shot.hits[j]].hit(constant.WEAPONS[allTanks[this.playerList[i].getTank()].weapon].strength);
                                 allTanks[shot.hits[j]].life = life;
                                 if (life <= 0) {
-                                    let change = this.tankList[shot.hits[j]].getPlayer().setDead(this.rank);
+                                    let rank = this.currentRank();
+                                    let change = this.tankList[shot.hits[j]].getPlayer().setDead(rank);
                                     if (change) {
-                                        this.rank--;
-                                        if (this.rank == 1) {
+                                        if (rank <= 2) {
                                             end = true;
                                         }
                                     }
@@ -95,11 +94,21 @@ class Game {
         }
     }
 
+    currentRank() {
+        let rank = 0;
+        for (let i = 0; i < this.playerList.length; i++) {
+            if (!this.playerList[i].isDead()) {
+                rank++;
+            }
+        }
+        return rank;
+    }
+
     endGame(force) {
         this.end = true;
         for (let i = 0; i < this.playerList.length; i++) {
             if (!this.playerList[i].isDead()) {
-                this.playerList[i].setDead(this.rank);
+                this.playerList[i].setDead(this.currentRank());
             }
             this.playerList[i].endGame(force);
         }
@@ -111,7 +120,6 @@ class Game {
     start() {
         this.timer = null;
         let game = this.getObject();
-        this.rank = this.playerList.length;
         let positions = [];
         for (let i = 0; i < this.playerList.length; i++) {
             let x;
@@ -120,7 +128,7 @@ class Game {
                 uniquePosition = true;
                 x = Math.floor((constant.WIDTH / 10) * Math.random());
                 for (let i = 0; i < positions.length; i++) {
-                    if (x >= positions[i] - 10 && x <= positions[i] + 10) {
+                    if (x >= positions[i] - 25 && x <= positions[i] + 25) {
                         uniquePosition = false;
                         break;
                     }
@@ -159,7 +167,6 @@ class Game {
         let index = this.playerList.indexOf(player);
         if (index > -1) {
             let tank = this.tankList[this.playerList[index].getTank()];
-            this.rank--;
             this.playerList.splice(index, 1);
             if (this.playerList.length <= constant.MIN_PLAYERS) {
                 clearTimeout(this.timer);

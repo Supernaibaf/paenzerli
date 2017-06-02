@@ -133,6 +133,6 @@ const weaponElementClick = function weaponElementClick(e) {
 
 const fireClick = function fireClick() {
     disableGameInteraction();
-    stopTimer();
+    timeLine.style.background = "#00cf00";
     sendFire(myTank.getObject());
 };

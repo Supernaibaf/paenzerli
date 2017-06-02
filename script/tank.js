@@ -190,7 +190,7 @@ class Tank {
             this.angle = 0;
         }
         this.setStrength(this.strength);
-        this.draw();
+        redrawPlayground();
     }
 
     setPosition(x, operator) {
@@ -240,18 +240,19 @@ class Tank {
                 this.angle = Math.PI - Math.atan(distY / distX);
             }
         }
-        this.draw();
+        redrawPlayground();
     }
 
     draw() {
         if (!this.isDead) {
+            //redrawPlayground();
             let pipeEndX = 24 * Math.cos(this.angle);
             let pipeEndY = -24 * Math.sin(this.angle);
             let lifeWidth = (36 / 100) * this.life - 18;
-            this.context.beginPath();
+            /*this.context.beginPath();
             this.context.rect(this.x - 25, this.y - 25, 50, 30);
             this.context.fillStyle = BACKGROUND_COLOR;
-            this.context.fill();
+            this.context.fill();*/
             this.context.beginPath();
             this.context.lineTo(this.x, this.y);
             this.context.lineTo(this.x + pipeEndX, this.y + pipeEndY);

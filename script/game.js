@@ -11,6 +11,7 @@ const initialize = function initialize() {
 
 const startGame = function startGame(game) {
     landscape = game.landscape;
+    allTanks = [];
     for (let key in game.alltanks) {
         if (game.alltanks.hasOwnProperty(key)) {
             allTanks[key] = new Tank(
